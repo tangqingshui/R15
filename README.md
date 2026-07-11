@@ -2,12 +2,12 @@
 
 基于 `process-data-simplified.json` 的流程图页面，展示流程定义、子流程分组、已执行路径和当前节点。
 
-前端同时支持两种数据模式：
+页面只需要一个接口，响应中同时返回：
 
-- `src/workflow.json`：流程定义和实例最新快照，字段结构保持不变。
-- `src/transition-history.json`：流转事件历史，按 `sequence` 回放；可重复记录同一节点或同一条边，用于驳回、循环和重试。
+- `definition`：流程节点、连线、分组和条件定义。
+- `instance`：当前实例快照；可选的 `instance.transitions` 用于表达驳回、重试、回退、循环和并行流转历史。
 
-如果暂时没有流转历史，页面会自动回退为按 `instance.edgeStates` 展示，不影响现有接口接入。后端字段说明和 Java DTO 见 `docs/workflow-api-contract-java.md`。
+当前 `src/workflow.json` 已内置一份复杂实例数据。后端不返回 `instance.transitions`、返回 `null` 或返回 `[]` 时，前端会自动回退为按 `instance.edgeStates` 静态展示。后端字段说明和 Java DTO 见 `docs/workflow-api-contract-java.md`。
 
 ## 本地运行
 

@@ -14,6 +14,18 @@
         "target": "APPROVAL_PENDING"
       },
       {
+        "event": "RETRY",
+        "id": "NOT_SUBMITTED_RETRY_TO_APPROVAL_PENDING",
+        "source": "NOT_SUBMITTED",
+        "target": "APPROVAL_PENDING"
+      },
+      {
+        "event": "REJECT",
+        "id": "APPROVAL_PENDING_REJECT_TO_NOT_SUBMITTED",
+        "source": "APPROVAL_PENDING",
+        "target": "NOT_SUBMITTED"
+      },
+      {
         "event": "PASS",
         "id": "APPROVAL_PENDING_TO_ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
         "source": "APPROVAL_PENDING",
@@ -96,6 +108,12 @@
         "id": "ADVANCE_PAYMENT_SETTLEMENT_DONE_TO_TAIL_CI_PENDING",
         "source": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
         "target": "TAIL_CI_PENDING"
+      },
+      {
+        "event": "ROLLBACK",
+        "id": "TAIL_CI_PENDING_ROLLBACK_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "source": "TAIL_CI_PENDING",
+        "target": "ADVANCE_PAYMENT_SETTLEMENT_DONE"
       },
       {
         "event": "PASS",
@@ -419,13 +437,25 @@
         "edgeId": "NOT_SUBMITTED_TO_APPROVAL_PENDING"
       },
       {
+        "edgeId": "APPROVAL_PENDING_REJECT_TO_NOT_SUBMITTED"
+      },
+      {
+        "edgeId": "NOT_SUBMITTED_RETRY_TO_APPROVAL_PENDING"
+      },
+      {
         "edgeId": "APPROVAL_PENDING_TO_ADVANCE_PAYMENT_SETTLEMENT_ENTRY"
       },
       {
         "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_CTR_COLLECTION_BY_ADVANCE_PAYMENT"
       },
       {
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT"
+      },
+      {
         "edgeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "edgeId": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT"
       },
       {
         "edgeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT_TO_APPO_PAYMENT_BY_ADVANCE_PAYMENT"
@@ -444,6 +474,9 @@
       },
       {
         "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE_TO_TAIL_CI_PENDING"
+      },
+      {
+        "edgeId": "TAIL_CI_PENDING_ROLLBACK_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE"
       },
       {
         "edgeId": "TAIL_CI_PENDING_TO_TAIL_SETTLEMENT_PENDING_ENTRY"
@@ -504,6 +537,11 @@
       {
         "enteredAt": 1782552654000,
         "nodeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552654100,
+        "nodeId": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
         "status": "COMPLETED"
       },
       {
@@ -592,7 +630,7 @@
         "status": "COMPLETED"
       },
       {
-        "enteredAt": 1782552672000,
+        "enteredAt": 1782552676000,
         "nodeId": "REPAYMENT_PENDING",
         "status": "PROCESSING"
       }
@@ -600,6 +638,288 @@
     "processCode": "DZDC_SOE_FOREIGN_PAY_FIRST_BUSINESS_FLOW",
     "revision": 19,
     "status": "RUNNING",
-    "updatedAt": 1782552672000
+    "transitions": [
+      {
+        "transitionId": "TRANSITION_000001",
+        "sequence": 1,
+        "edgeId": "START_TO_NOT_SUBMITTED",
+        "event": "PASS",
+        "fromNodeId": "START",
+        "toNodeId": "NOT_SUBMITTED",
+        "occurredAt": 1782552651000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000002",
+        "sequence": 2,
+        "edgeId": "NOT_SUBMITTED_TO_APPROVAL_PENDING",
+        "event": "PASS",
+        "fromNodeId": "NOT_SUBMITTED",
+        "toNodeId": "APPROVAL_PENDING",
+        "occurredAt": 1782552652000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000003",
+        "sequence": 3,
+        "edgeId": "APPROVAL_PENDING_REJECT_TO_NOT_SUBMITTED",
+        "event": "REJECT",
+        "fromNodeId": "APPROVAL_PENDING",
+        "toNodeId": "NOT_SUBMITTED",
+        "occurredAt": 1782552653000,
+        "reason": "审批资料不完整，驳回补充"
+      },
+      {
+        "transitionId": "TRANSITION_000004",
+        "sequence": 4,
+        "edgeId": "NOT_SUBMITTED_RETRY_TO_APPROVAL_PENDING",
+        "event": "RETRY",
+        "fromNodeId": "NOT_SUBMITTED",
+        "toNodeId": "APPROVAL_PENDING",
+        "occurredAt": 1782552654000,
+        "reason": "资料补齐后重新发起审批"
+      },
+      {
+        "transitionId": "TRANSITION_000005",
+        "sequence": 5,
+        "edgeId": "APPROVAL_PENDING_TO_ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "event": "PASS",
+        "fromNodeId": "APPROVAL_PENDING",
+        "toNodeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "occurredAt": 1782552655000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000006",
+        "sequence": 6,
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "toNodeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552656000,
+        "reason": "并行分支：合同收款核验"
+      },
+      {
+        "transitionId": "TRANSITION_000007",
+        "sequence": 7,
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "toNodeId": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552656100,
+        "reason": "并行分支：分批收款核验"
+      },
+      {
+        "transitionId": "TRANSITION_000008",
+        "sequence": 8,
+        "edgeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "toNodeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552657000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000009",
+        "sequence": 9,
+        "edgeId": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
+        "toNodeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552657100,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000010",
+        "sequence": 10,
+        "edgeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT_TO_APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "toNodeId": "APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552658000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000011",
+        "sequence": 11,
+        "edgeId": "APPO_PAYMENT_BY_ADVANCE_PAYMENT_TO_READY_TO_ADVANCE_FINANCING",
+        "event": "PASS",
+        "fromNodeId": "APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "toNodeId": "READY_TO_ADVANCE_FINANCING",
+        "occurredAt": 1782552659000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000012",
+        "sequence": 12,
+        "edgeId": "READY_TO_ADVANCE_FINANCING_TO_CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "READY_TO_ADVANCE_FINANCING",
+        "toNodeId": "CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552660000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000013",
+        "sequence": 13,
+        "edgeId": "CTR_DEBT_BY_ADVANCE_PAYMENT_TO_CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "toNodeId": "CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "occurredAt": 1782552661000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000014",
+        "sequence": 14,
+        "edgeId": "CTR_BORROW_BY_ADVANCE_PAYMENT_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "event": "PASS",
+        "fromNodeId": "CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "toNodeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "occurredAt": 1782552662000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000015",
+        "sequence": 15,
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE_TO_TAIL_CI_PENDING",
+        "event": "PASS",
+        "fromNodeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "toNodeId": "TAIL_CI_PENDING",
+        "occurredAt": 1782552663000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000016",
+        "sequence": 16,
+        "edgeId": "TAIL_CI_PENDING_ROLLBACK_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "event": "ROLLBACK",
+        "fromNodeId": "TAIL_CI_PENDING",
+        "toNodeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "occurredAt": 1782552664000,
+        "reason": "CI金额与结算结果不一致，回退复核"
+      },
+      {
+        "transitionId": "TRANSITION_000017",
+        "sequence": 17,
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE_TO_TAIL_CI_PENDING",
+        "event": "PASS",
+        "fromNodeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "toNodeId": "TAIL_CI_PENDING",
+        "occurredAt": 1782552665000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000018",
+        "sequence": 18,
+        "edgeId": "TAIL_CI_PENDING_TO_TAIL_SETTLEMENT_PENDING_ENTRY",
+        "event": "PASS",
+        "fromNodeId": "TAIL_CI_PENDING",
+        "toNodeId": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "occurredAt": 1782552666000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000019",
+        "sequence": 19,
+        "edgeId": "TAIL_SETTLEMENT_PENDING_ENTRY_TO_APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "toNodeId": "APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "occurredAt": 1782552667000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000020",
+        "sequence": 20,
+        "edgeId": "APPO_PAYMENT_BY_TAIL_PAYMENT_TO_CTR_BORROW_BY_TAIL_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "toNodeId": "CTR_BORROW_BY_TAIL_PAYMENT",
+        "occurredAt": 1782552668000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000021",
+        "sequence": 21,
+        "edgeId": "CTR_BORROW_BY_TAIL_PAYMENT_TO_CTR_DEBT_BY_TAIL_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "CTR_BORROW_BY_TAIL_PAYMENT",
+        "toNodeId": "CTR_DEBT_BY_TAIL_PAYMENT",
+        "occurredAt": 1782552669000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000022",
+        "sequence": 22,
+        "edgeId": "CTR_DEBT_BY_TAIL_PAYMENT_TO_TAIL_SETTLEMENT_PENDING_DONE",
+        "event": "PASS",
+        "fromNodeId": "CTR_DEBT_BY_TAIL_PAYMENT",
+        "toNodeId": "TAIL_SETTLEMENT_PENDING_DONE",
+        "occurredAt": 1782552670000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000023",
+        "sequence": 23,
+        "edgeId": "TAIL_SETTLEMENT_PENDING_DONE_TO_TAX_SETTLEMENT_PENDING_ENTRY",
+        "event": "PASS",
+        "fromNodeId": "TAIL_SETTLEMENT_PENDING_DONE",
+        "toNodeId": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "occurredAt": 1782552671000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000024",
+        "sequence": 24,
+        "edgeId": "TAX_SETTLEMENT_PENDING_ENTRY_TO_CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "toNodeId": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "occurredAt": 1782552672000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000025",
+        "sequence": 25,
+        "edgeId": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT_TO_CTR_DEBT_BY_TAX_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "toNodeId": "CTR_DEBT_BY_TAX_PAYMENT",
+        "occurredAt": 1782552673000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000026",
+        "sequence": 26,
+        "edgeId": "CTR_DEBT_BY_TAX_PAYMENT_TO_CTR_BORROW_BY_TAX_PAYMENT",
+        "event": "PASS",
+        "fromNodeId": "CTR_DEBT_BY_TAX_PAYMENT",
+        "toNodeId": "CTR_BORROW_BY_TAX_PAYMENT",
+        "occurredAt": 1782552674000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000027",
+        "sequence": 27,
+        "edgeId": "CTR_BORROW_BY_TAX_PAYMENT_TO_TAX_SETTLEMENT_PENDING_DONE",
+        "event": "PASS",
+        "fromNodeId": "CTR_BORROW_BY_TAX_PAYMENT",
+        "toNodeId": "TAX_SETTLEMENT_PENDING_DONE",
+        "occurredAt": 1782552675000,
+        "reason": null
+      },
+      {
+        "transitionId": "TRANSITION_000028",
+        "sequence": 28,
+        "edgeId": "TAX_SETTLEMENT_PENDING_DONE_TO_REPAYMENT_PENDING",
+        "event": "PASS",
+        "fromNodeId": "TAX_SETTLEMENT_PENDING_DONE",
+        "toNodeId": "REPAYMENT_PENDING",
+        "occurredAt": 1782552676000,
+        "reason": null
+      }
+    ],
+    "updatedAt": 1782552676000
   }
 }

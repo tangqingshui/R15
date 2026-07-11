@@ -1,8 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import dagre from '@dagrejs/dagre';
 import workflow from './workflow.json';
-import transitionHistoryData from './transition-history.json';
 import styles from './styles.module.css';
 
 function cx() {
@@ -21,9 +19,12 @@ const PADDING_X = 150;
 const PADDING_Y = 120;
 const definition = workflow.definition;
 const instance = workflow.instance;
+const nodeStates = Array.isArray(instance.nodeStates) ? instance.nodeStates : [];
+const edgeStates = Array.isArray(instance.edgeStates) ? instance.edgeStates : [];
+const activeNodeIds = Array.isArray(instance.activeNodeIds) ? instance.activeNodeIds : [];
 
 const nodeStateById = {};
-instance.nodeStates.forEach(function (state) { nodeStateById[state.nodeId] = state; });
+nodeStates.forEach(function (state) { nodeStateById[state.nodeId] = state; });
 
 const groupById = {};
 definition.groups.forEach(function (group) { groupById[group.id] = group; });
@@ -35,7 +36,7 @@ const edgeById = {};
 definition.edges.forEach(function (edge) { edgeById[edge.id] = edge; });
 
 function snapshotTransitions() {
-  return instance.edgeStates.map(function (state, index) {
+  return edgeStates.map(function (state, index) {
     const edge = edgeById[state.edgeId];
     const targetState = edge && nodeStateById[edge.target];
     return edge ? {
@@ -54,7 +55,8 @@ function snapshotTransitions() {
 
 function normalizeTransitions(records) {
   const attemptsByNodeId = {};
-  return records.slice().sort(function (first, second) {
+  const safeRecords = Array.isArray(records) ? records : [];
+  return safeRecords.slice().sort(function (first, second) {
     return Number(first.sequence || 0) - Number(second.sequence || 0)
       || Number(first.occurredAt || 0) - Number(second.occurredAt || 0);
   }).map(function (record, index) {
@@ -72,10 +74,8 @@ function normalizeTransitions(records) {
   }).filter(Boolean);
 }
 
-const suppliedTransitionHistory = transitionHistoryData
-  && transitionHistoryData.instanceId === instance.instanceId
-  && Array.isArray(transitionHistoryData.transitions)
-  ? transitionHistoryData.transitions
+const suppliedTransitionHistory = Array.isArray(instance.transitions)
+  ? instance.transitions
   : [];
 const transitions = normalizeTransitions(suppliedTransitionHistory.length
   ? suppliedTransitionHistory
@@ -83,7 +83,7 @@ const transitions = normalizeTransitions(suppliedTransitionHistory.length
 const hasTransitionHistory = suppliedTransitionHistory.length > 0;
 
 const takenEdgeIds = {};
-instance.edgeStates.forEach(function (edge) { takenEdgeIds[edge.edgeId] = true; });
+edgeStates.forEach(function (edge) { takenEdgeIds[edge.edgeId] = true; });
 transitions.forEach(function (transition) { takenEdgeIds[transition.edgeId] = true; });
 
 const latestTransitionByEdgeId = {};
@@ -99,13 +99,13 @@ sequenceByNodeId.START = 1;
 transitions.forEach(function (transition) {
   sequenceByNodeId[transition.toNodeId] = transition.sequence + 1;
 });
-instance.nodeStates.slice().filter(function (state) { return state.enteredAt && !sequenceByNodeId[state.nodeId]; })
+nodeStates.slice().filter(function (state) { return state.enteredAt && !sequenceByNodeId[state.nodeId]; })
   .sort(function (first, second) { return first.enteredAt - second.enteredAt; })
   .forEach(function (state, index) { sequenceByNodeId[state.nodeId] = index + 1; });
 
 const currentEdgeIds = {};
 definition.edges.forEach(function (edge) {
-  if (takenEdgeIds[edge.id] && instance.activeNodeIds.indexOf(edge.target) !== -1) currentEdgeIds[edge.id] = true;
+  if (takenEdgeIds[edge.id] && activeNodeIds.indexOf(edge.target) !== -1) currentEdgeIds[edge.id] = true;
 });
 
 const conditionLabels = {
@@ -150,6 +150,32 @@ function eventLabel(event) {
   return '正常流转';
 }
 
+function takenEdgesFor(transitionRecords, includeSnapshot) {
+  const result = {};
+  if (includeSnapshot) {
+    edgeStates.forEach(function (state) { result[state.edgeId] = true; });
+  }
+  transitionRecords.forEach(function (transition) { result[transition.edgeId] = true; });
+  return result;
+}
+
+function latestTransitionForEdge(transitionRecords, edgeId) {
+  let result = null;
+  transitionRecords.forEach(function (transition) {
+    if (transition.edgeId === edgeId) result = transition;
+  });
+  return result;
+}
+
+function sequenceForNode(transitionRecords, nodeId) {
+  if (nodeId === 'START') return 1;
+  let result = null;
+  transitionRecords.forEach(function (transition) {
+    if (transition.toNodeId === nodeId) result = transition.sequence + 1;
+  });
+  return result;
+}
+
 function formatTime(timestamp) {
   if (!timestamp) return '尚未进入';
   return new Date(timestamp).toLocaleString('zh-CN', {
@@ -187,6 +213,33 @@ function roundedPath(points) {
   }
   const last = points[points.length - 1];
   return `${path} L ${last.x} ${last.y}`;
+}
+
+function pointAtPathRatio(points, ratio) {
+  if (!points || !points.length) return { x: 0, y: 0 };
+  if (points.length === 1) return { x: points[0].x, y: points[0].y };
+  const segments = [];
+  let totalLength = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const start = points[index];
+    const end = points[index + 1];
+    const length = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+    segments.push({ start: start, end: end, length: length });
+    totalLength += length;
+  }
+  let remaining = totalLength * Math.max(0, Math.min(1, ratio));
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+    if (remaining <= segment.length || index === segments.length - 1) {
+      const segmentRatio = segment.length ? remaining / segment.length : 0;
+      return {
+        x: segment.start.x + (segment.end.x - segment.start.x) * segmentRatio,
+        y: segment.start.y + (segment.end.y - segment.start.y) * segmentRatio,
+      };
+    }
+    remaining -= segment.length;
+  }
+  return { x: points[points.length - 1].x, y: points[points.length - 1].y };
 }
 
 function spreadOffsets(count, width) {
@@ -364,65 +417,310 @@ function deoverlapRoutes(edges, positionedNodes) {
   });
 }
 
-function buildGroupLayout(group) {
+function routeUntakenInternalEdges(edges, positionedNodes) {
+  const committedEdges = edges.filter(function (edge) { return edge.mainSpine; });
+  const usedSidePorts = {};
+  let centeredLane = 0;
+
+  function sideIsUsed(nodeId, side) {
+    return Boolean(usedSidePorts[nodeId] && usedSidePorts[nodeId][side]);
+  }
+
+  function markSide(nodeId, side) {
+    if (!usedSidePorts[nodeId]) usedSidePorts[nodeId] = {};
+    usedSidePorts[nodeId][side] = true;
+  }
+
+  edges.filter(function (edge) { return !edge.mainSpine; }).forEach(function (edge) {
+    const source = positionedNodes[edge.source];
+    const target = positionedNodes[edge.target];
+    const horizontalDelta = target.x - source.x;
+    const routes = [];
+
+    if (!source.spine && !target.spine && Math.abs(horizontalDelta) <= 24) {
+      routes.push([
+        { x: source.x, y: source.y + source.height / 2 },
+        { x: target.x, y: target.y - target.height / 2 },
+      ]);
+    } else if (source.spine && !target.spine && target.y > source.y) {
+      const goesRight = horizontalDelta > 0;
+      const start = { x: source.x + (goesRight ? source.width / 2 : -source.width / 2), y: source.y };
+      const end = { x: target.x, y: target.y - target.height / 2 };
+      [0, 24, -24].forEach(function (offset) {
+        routes.push([
+          start,
+          { x: target.x + offset, y: start.y },
+          { x: target.x + offset, y: end.y },
+          end,
+        ]);
+      });
+    } else if (!source.spine && target.spine && target.y > source.y) {
+      const comesFromRight = source.x > target.x;
+      const start = { x: source.x, y: source.y + source.height / 2 };
+      const end = { x: target.x + (comesFromRight ? target.width / 2 : -target.width / 2), y: target.y };
+      [0, -24, 24].forEach(function (offset) {
+        routes.push([
+          start,
+          { x: start.x, y: end.y + offset },
+          { x: end.x, y: end.y + offset },
+          end,
+        ]);
+      });
+    } else if (Math.abs(horizontalDelta) > 24) {
+      const goesRight = horizontalDelta > 0;
+      const start = { x: source.x + (goesRight ? source.width / 2 : -source.width / 2), y: source.y };
+      const end = { x: target.x + (goesRight ? -target.width / 2 : target.width / 2), y: target.y };
+      const middleX = (start.x + end.x) / 2;
+      [0, 24, -24, 48, -48].forEach(function (offset) {
+        routes.push([
+          start,
+          { x: middleX + offset, y: start.y },
+          { x: middleX + offset, y: end.y },
+          end,
+        ]);
+      });
+    } else {
+      const rightBusy = sideIsUsed(source.id, 'right') || sideIsUsed(target.id, 'right');
+      const leftBusy = sideIsUsed(source.id, 'left') || sideIsUsed(target.id, 'left');
+      const useRight = rightBusy !== leftBusy ? !rightBusy : centeredLane % 2 === 0;
+      const lane = Math.floor(centeredLane / 2);
+      centeredLane += 1;
+      const preferredSide = useRight ? 1 : -1;
+      const portOffset = lane % 2 === 0 ? 16 : -16;
+      [preferredSide, -preferredSide].forEach(function (side) {
+        const start = { x: source.x + side * source.width / 2, y: source.y + portOffset };
+        const end = { x: target.x + side * target.width / 2, y: target.y + portOffset };
+        [64, 88, 112].forEach(function (distance) {
+          const railX = side > 0
+            ? Math.max(start.x, end.x) + distance + lane * 28
+            : Math.min(start.x, end.x) - distance - lane * 28;
+          routes.push([start, { x: railX, y: start.y }, { x: railX, y: end.y }, end]);
+        });
+      });
+    }
+
+    const selected = routes.find(function (points) {
+      const candidate = Object.assign({}, edge, { points: points });
+      return !routeHitsNode(edge, points, positionedNodes)
+        && !committedEdges.some(function (other) { return routesOverlap(candidate, other); });
+    }) || routes[0];
+    const compacted = selected.filter(function (point, index, points) {
+      return index === 0 || point.x !== points[index - 1].x || point.y !== points[index - 1].y;
+    });
+    edge.points = compacted;
+    edge.sideRouted = true;
+    const selectedStart = compacted[0];
+    const selectedEnd = compacted[compacted.length - 1];
+    if (Math.abs(selectedStart.x - source.x) > 0.01) {
+      markSide(source.id, selectedStart.x > source.x ? 'right' : 'left');
+    }
+    if (Math.abs(selectedEnd.x - target.x) > 0.01) {
+      markSide(target.id, selectedEnd.x > target.x ? 'right' : 'left');
+    }
+    committedEdges.push(edge);
+  });
+}
+
+function placeEdgeLabels(edges, positionedNodes) {
+  const placedRects = [];
+  const nodes = Object.keys(positionedNodes).map(function (id) { return positionedNodes[id]; });
+
+  function labelRect(point) {
+    return { left: point.x - 58, right: point.x + 58, top: point.y - 21, bottom: point.y + 21 };
+  }
+
+  function rectanglesOverlap(first, second) {
+    return first.left < second.right && first.right > second.left
+      && first.top < second.bottom && first.bottom > second.top;
+  }
+
+  function isClear(point, ownerEdge) {
+    const rect = labelRect(point);
+    if (placedRects.some(function (placed) { return rectanglesOverlap(rect, placed); })) return false;
+    if (nodes.some(function (node) {
+      return rectanglesOverlap(rect, {
+        left: node.x - node.width / 2 - 8,
+        right: node.x + node.width / 2 + 8,
+        top: node.y - node.height / 2 - 8,
+        bottom: node.y + node.height / 2 + 8,
+      });
+    })) return false;
+    return !edges.some(function (edge) {
+      if (edge === ownerEdge) return false;
+      for (let index = 0; index < edge.points.length - 1; index += 1) {
+        if (segmentIntersectsRect(edge.points[index], edge.points[index + 1], rect)) return true;
+      }
+      return false;
+    });
+  }
+
+  edges.filter(function (edge) {
+    return edge.condition || (edge.event && edge.event !== 'PASS');
+  }).sort(function (first, second) {
+    return Number(second.taken) - Number(first.taken);
+  }).forEach(function (edge) {
+    const segments = [];
+    for (let index = 0; index < edge.points.length - 1; index += 1) {
+      const start = edge.points[index];
+      const end = edge.points[index + 1];
+      segments.push({
+        start: start,
+        end: end,
+        length: Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)),
+      });
+    }
+    segments.sort(function (first, second) { return second.length - first.length; });
+    const candidates = [];
+    segments.forEach(function (segment) {
+      [0.5, 0.35, 0.65].forEach(function (ratio) {
+        candidates.push({
+          x: segment.start.x + (segment.end.x - segment.start.x) * ratio,
+          y: segment.start.y + (segment.end.y - segment.start.y) * ratio,
+        });
+      });
+    });
+    const selected = candidates.find(function (candidate) { return isClear(candidate, edge); })
+      || pointAtPathRatio(edge.points, 0.5);
+    edge.labelX = selected.x;
+    edge.labelY = selected.y;
+    placedRects.push(labelRect(selected));
+  });
+}
+
+function buildGroupLayout(group, layoutTakenEdgeIds) {
   const members = definition.nodes.filter(function (node) { return node.groupId === group.id; });
   const memberIds = {};
   members.forEach(function (node) { memberIds[node.id] = true; });
   const internalEdges = definition.edges.filter(function (edge) {
     return memberIds[edge.source] && memberIds[edge.target];
   });
-  const graph = new dagre.graphlib.Graph({ multigraph: true });
-  graph.setGraph({
-    rankdir: 'TB',
-    ranksep: 82,
-    nodesep: 76,
-    edgesep: 34,
-    marginx: 18,
-    marginy: 18,
-    acyclicer: 'greedy',
-    ranker: 'network-simplex',
-  });
-  graph.setDefaultEdgeLabel(function () { return {}; });
-
-  members.forEach(function (node) {
-    graph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-  });
+  const outgoing = {};
   internalEdges.forEach(function (edge) {
-    graph.setEdge(edge.source, edge.target, {
-      width: edge.condition ? 98 : 0,
-      height: edge.condition ? 28 : 0,
-      labelpos: 'c',
-    }, edge.id);
+    if (!outgoing[edge.source]) outgoing[edge.source] = [];
+    outgoing[edge.source].push(edge);
   });
-  dagre.layout(graph);
 
-  const graphSize = graph.graph();
-  const width = Math.max(700, graphSize.width + 116);
-  const height = graphSize.height + 132;
-  const offsetX = (width - graphSize.width) / 2;
-  const offsetY = 72;
+  function canReachExit(startId) {
+    const queue = [startId];
+    const visited = {};
+    while (queue.length) {
+      const nodeId = queue.shift();
+      if (nodeId === group.exitNodeId) return true;
+      if (visited[nodeId]) continue;
+      visited[nodeId] = true;
+      (outgoing[nodeId] || []).forEach(function (edge) { queue.push(edge.target); });
+    }
+    return false;
+  }
+
+  const spineNodeIds = {};
+  const spineEdgeIds = {};
+  let currentId = group.entryNodeId;
+  for (let step = 0; step < members.length && currentId; step += 1) {
+    spineNodeIds[currentId] = true;
+    if (currentId === group.exitNodeId) break;
+    const candidates = (outgoing[currentId] || []).filter(function (edge) { return canReachExit(edge.target); })
+      .sort(function (first, second) {
+        return Number(Boolean(takenEdgeIds[second.id])) - Number(Boolean(takenEdgeIds[first.id]))
+          || first.id.localeCompare(second.id);
+      });
+    const selected = candidates[0];
+    if (!selected || spineNodeIds[selected.target]) break;
+    spineEdgeIds[selected.id] = true;
+    currentId = selected.target;
+  }
+  spineNodeIds[group.exitNodeId] = true;
+
+  const rankByNodeId = {};
+  rankByNodeId[group.entryNodeId] = 0;
+  for (let iteration = 0; iteration < members.length; iteration += 1) {
+    internalEdges.forEach(function (edge) {
+      if (edge.event && edge.event !== 'PASS') return;
+      if (rankByNodeId[edge.source] === undefined || edge.target === group.entryNodeId) return;
+      const nextRank = rankByNodeId[edge.source] + 1;
+      if (rankByNodeId[edge.target] === undefined || nextRank > rankByNodeId[edge.target]) {
+        rankByNodeId[edge.target] = nextRank;
+      }
+    });
+  }
+  let maximumRank = Math.max.apply(null, Object.keys(rankByNodeId).map(function (id) { return rankByNodeId[id]; }));
+  members.forEach(function (node) {
+    if (rankByNodeId[node.id] === undefined) {
+      maximumRank += 1;
+      rankByNodeId[node.id] = maximumRank;
+    }
+  });
+
+  const candidateIds = members.filter(function (node) { return !spineNodeIds[node.id]; }).map(function (node) { return node.id; });
+  const candidateIdSet = {};
+  candidateIds.forEach(function (id) { candidateIdSet[id] = true; });
+  const candidateAdjacency = {};
+  candidateIds.forEach(function (id) { candidateAdjacency[id] = []; });
+  internalEdges.forEach(function (edge) {
+    if (candidateIdSet[edge.source] && candidateIdSet[edge.target]) {
+      candidateAdjacency[edge.source].push(edge.target);
+      candidateAdjacency[edge.target].push(edge.source);
+    }
+  });
+  const componentByNodeId = {};
+  const components = [];
+  candidateIds.forEach(function (candidateId) {
+    if (componentByNodeId[candidateId] !== undefined) return;
+    const componentIndex = components.length;
+    const component = [];
+    const queue = [candidateId];
+    componentByNodeId[candidateId] = componentIndex;
+    while (queue.length) {
+      const nodeId = queue.shift();
+      component.push(nodeId);
+      candidateAdjacency[nodeId].forEach(function (nextId) {
+        if (componentByNodeId[nextId] !== undefined) return;
+        componentByNodeId[nextId] = componentIndex;
+        queue.push(nextId);
+      });
+    }
+    components.push(component);
+  });
+
+  const maximumCandidateLane = components.length ? Math.floor((components.length - 1) / 2) : 0;
+  const maximumColumnOffset = 310 + maximumCandidateLane * 260;
+  const width = Math.max(980, (maximumColumnOffset + NODE_WIDTH / 2 + 90) * 2);
+  const centerX = width / 2;
+  const firstCenterY = 112;
+  const rowStep = 146;
+  maximumRank = Math.max.apply(null, members.map(function (node) { return rankByNodeId[node.id]; }));
+  const height = firstCenterY + maximumRank * rowStep + NODE_HEIGHT / 2 + 78;
   const positionedNodes = {};
   members.forEach(function (node) {
-    const position = graph.node(node.id);
+    let x = centerX;
+    if (!spineNodeIds[node.id]) {
+      const componentIndex = componentByNodeId[node.id];
+      const side = componentIndex % 2 === 0 ? 1 : -1;
+      const lane = Math.floor(componentIndex / 2);
+      x += side * (310 + lane * 260);
+    }
     positionedNodes[node.id] = Object.assign({}, node, {
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
-      x: position.x + offsetX,
-      y: position.y + offsetY,
+      x: x,
+      y: firstCenterY + rankByNodeId[node.id] * rowStep,
+      spine: Boolean(spineNodeIds[node.id]),
     });
   });
 
   const positionedEdges = internalEdges.map(function (edge) {
-    const route = graph.edge({ v: edge.source, w: edge.target, name: edge.id });
+    const source = positionedNodes[edge.source];
+    const target = positionedNodes[edge.target];
     return Object.assign({}, edge, {
-      taken: Boolean(takenEdgeIds[edge.id]),
-      points: route.points.map(function (point) { return { x: point.x + offsetX, y: point.y + offsetY }; }),
-      x: route.x === undefined ? undefined : route.x + offsetX,
-      y: route.y === undefined ? undefined : route.y + offsetY,
+      taken: Boolean(layoutTakenEdgeIds[edge.id]),
+      mainSpine: Boolean(spineEdgeIds[edge.id]),
+      points: [
+        { x: source.x, y: source.y + source.height / 2 },
+        { x: target.x, y: target.y - target.height / 2 },
+      ],
     });
   });
-  separatePorts(positionedEdges, positionedNodes);
-  deoverlapRoutes(positionedEdges, positionedNodes);
+  routeUntakenInternalEdges(positionedEdges, positionedNodes);
 
   return {
     width: width,
@@ -432,10 +730,13 @@ function buildGroupLayout(group) {
   };
 }
 
-function buildLayout(collapsedGroups) {
+function buildLayout(collapsedGroups, transitionRecords) {
+  const usesCustomHistory = Array.isArray(transitionRecords);
+  const layoutTransitions = usesCustomHistory ? transitionRecords : transitions;
+  const layoutTakenEdgeIds = takenEdgesFor(layoutTransitions, !usesCustomHistory);
   const groupLayouts = {};
   definition.groups.forEach(function (group) {
-    if (!collapsedGroups[group.id]) groupLayouts[group.id] = buildGroupLayout(group);
+    if (!collapsedGroups[group.id]) groupLayouts[group.id] = buildGroupLayout(group, layoutTakenEdgeIds);
   });
 
   const leadingNodes = definition.nodes.filter(function (node) {
@@ -533,11 +834,43 @@ function buildLayout(collapsedGroups) {
 
   const internalEdgeIds = {};
   positionedEdges.forEach(function (edge) { internalEdgeIds[edge.id] = true; });
+  const usedSidePortOffsets = {};
+
+  function rememberSidePort(nodeId, side, offset) {
+    const key = `${nodeId}__${side}`;
+    if (!usedSidePortOffsets[key]) usedSidePortOffsets[key] = [];
+    usedSidePortOffsets[key].push(offset);
+  }
+
+  function registerSideEndpoint(nodeId, point) {
+    const node = positionedNodes[nodeId];
+    if (!node || Math.abs(point.y - node.y) > node.height / 2 - 3) return;
+    if (Math.abs(point.x - (node.x - node.width / 2)) < 0.5) rememberSidePort(nodeId, 'left', point.y - node.y);
+    if (Math.abs(point.x - (node.x + node.width / 2)) < 0.5) rememberSidePort(nodeId, 'right', point.y - node.y);
+  }
+
+  positionedEdges.forEach(function (edge) {
+    registerSideEndpoint(edge.source, edge.points[0]);
+    registerSideEndpoint(edge.target, edge.points[edge.points.length - 1]);
+  });
+
+  function allocateSidePortOffset(nodeId, side, preferLower) {
+    const key = `${nodeId}__${side}`;
+    const used = usedSidePortOffsets[key] || [];
+    const candidates = preferLower ? [18, 30, 0, -18, -30] : [0, -18, 18, -30, 30];
+    const selected = candidates.find(function (candidate) {
+      return !used.some(function (value) { return Math.abs(value - candidate) < 11; });
+    });
+    const safeOffset = selected === undefined ? 0 : selected;
+    rememberSidePort(nodeId, side, safeOffset);
+    return safeOffset;
+  }
+
   const externalEdges = definition.edges.map(function (edge) {
     return Object.assign({}, edge, {
       source: mappedNodeId(edge.source),
       target: mappedNodeId(edge.target),
-      taken: Boolean(takenEdgeIds[edge.id]),
+      taken: Boolean(layoutTakenEdgeIds[edge.id]),
     });
   }).filter(function (edge) {
     return edge.source !== edge.target && !internalEdgeIds[edge.id];
@@ -553,32 +886,94 @@ function buildLayout(collapsedGroups) {
   });
   const outgoingOffset = {};
   const incomingOffset = {};
+  function assignPortOffsets(list, targetMap, nodeWidth) {
+    const sorted = list.slice().sort(function (first, second) { return first.id.localeCompare(second.id); });
+    const primary = sorted.filter(function (edge) { return edge.taken && edge.event === 'PASS'; });
+    if (primary.length === 1) {
+      targetMap[primary[0].id] = 0;
+      const laneSequence = [34, -34, 68, -68, 88, -88];
+      sorted.filter(function (edge) { return edge !== primary[0]; }).forEach(function (edge, index) {
+        targetMap[edge.id] = laneSequence[index] === undefined ? 0 : laneSequence[index];
+      });
+      return;
+    }
+    const offsets = spreadOffsets(sorted.length, nodeWidth);
+    sorted.forEach(function (edge, index) { targetMap[edge.id] = offsets[index]; });
+  }
   Object.keys(outgoing).forEach(function (nodeId) {
-    const list = outgoing[nodeId].sort(function (first, second) { return first.id.localeCompare(second.id); });
-    const offsets = spreadOffsets(list.length, positionedNodes[nodeId].width);
-    list.forEach(function (edge, index) { outgoingOffset[edge.id] = offsets[index]; });
+    assignPortOffsets(outgoing[nodeId], outgoingOffset, positionedNodes[nodeId].width);
   });
   Object.keys(incoming).forEach(function (nodeId) {
-    const list = incoming[nodeId].sort(function (first, second) { return first.id.localeCompare(second.id); });
-    const offsets = spreadOffsets(list.length, positionedNodes[nodeId].width);
-    list.forEach(function (edge, index) { incomingOffset[edge.id] = offsets[index]; });
+    assignPortOffsets(incoming[nodeId], incomingOffset, positionedNodes[nodeId].width);
+  });
+
+  const sideByEdgeId = {};
+  const hasTakenConditionBySource = {};
+  externalEdges.forEach(function (edge) {
+    if (edge.condition && edge.taken) hasTakenConditionBySource[edge.source] = true;
+  });
+  externalEdges.forEach(function (edge) {
+    if (edge.event === 'REJECT' || edge.event === 'ROLLBACK') sideByEdgeId[edge.id] = 'left';
+    if (edge.event === 'RETRY') sideByEdgeId[edge.id] = 'right';
+    if (edge.condition
+      && positionedNodes[edge.target].sectionIndex <= positionedNodes[edge.source].sectionIndex) {
+      sideByEdgeId[edge.id] = 'left';
+    }
+    if (edge.condition && !edge.taken && hasTakenConditionBySource[edge.source]) {
+      sideByEdgeId[edge.id] = positionedNodes[edge.target].sectionIndex > positionedNodes[edge.source].sectionIndex
+        ? 'right'
+        : 'left';
+    }
+    if (edge.condition && !edge.taken
+      && positionedNodes[edge.target].sectionIndex !== positionedNodes[edge.source].sectionIndex + 1) {
+      sideByEdgeId[edge.id] = positionedNodes[edge.target].sectionIndex > positionedNodes[edge.source].sectionIndex
+        ? 'right'
+        : 'left';
+    }
   });
 
   let leftLaneIndex = 0;
   let rightLaneIndex = 0;
+  let specialLeftLaneIndex = 0;
+  let specialRightLaneIndex = 0;
   const leftRail = centerX - widestStage / 2 - 96;
   const rightRail = centerX + widestStage / 2 + 96;
+  const positionedGroupById = {};
+  positionedGroups.forEach(function (group) { positionedGroupById[group.id] = group; });
+
+  function isGroupExitNode(node) {
+    const group = node.groupId && positionedGroupById[node.groupId];
+    return Boolean(group
+      && group.y + group.height - (node.y + node.height / 2) <= 132);
+  }
+
   externalEdges.forEach(function (edge) {
     const source = positionedNodes[edge.source];
     const target = positionedNodes[edge.target];
-    const start = { x: source.x + (outgoingOffset[edge.id] || 0), y: source.y + source.height / 2 };
-    const end = { x: target.x + (incomingOffset[edge.id] || 0), y: target.y - target.height / 2 };
+    const side = sideByEdgeId[edge.id];
     const isDirect = target.sectionIndex === source.sectionIndex + 1;
+    const usesCenterSpine = !side && isDirect && edge.event === 'PASS';
+    const sourceIsGroupExit = side && isGroupExitNode(source);
+    const targetIsGroupExit = side && isGroupExitNode(target);
+    const start = side
+        ? { x: source.x + (side === 'left' ? -source.width / 2 : source.width / 2), y: source.y + allocateSidePortOffset(source.id, side, sourceIsGroupExit) }
+      : { x: source.x + (usesCenterSpine ? 0 : (outgoingOffset[edge.id] || 0)), y: source.y + source.height / 2 };
+    const end = side
+        ? { x: target.x + (side === 'left' ? -target.width / 2 : target.width / 2), y: target.y + allocateSidePortOffset(target.id, side, targetIsGroupExit) }
+      : { x: target.x + (usesCenterSpine ? 0 : (incomingOffset[edge.id] || 0)), y: target.y - target.height / 2 };
     let points;
     let labelX;
     let labelY;
 
-    if (isDirect) {
+    if (side) {
+      const laneIndex = side === 'left' ? specialLeftLaneIndex++ : specialRightLaneIndex++;
+      const railX = side === 'left'
+        ? Math.min(leftRail - laneIndex * 122, Math.min(start.x, end.x) - 76)
+        : Math.max(rightRail + laneIndex * 122, Math.max(start.x, end.x) + 76);
+      points = [start, { x: railX, y: start.y }, { x: railX, y: end.y }, end];
+      labelX = railX;
+      labelY = (start.y + end.y) / 2;
+    } else if (isDirect) {
       const middleY = (start.y + end.y) / 2;
       points = Math.abs(start.x - end.x) < 0.5
         ? [start, end]
@@ -588,8 +983,8 @@ function buildLayout(collapsedGroups) {
     } else {
       const isBackward = target.sectionIndex <= source.sectionIndex;
       const railX = isBackward
-        ? rightRail + rightLaneIndex++ * 58
-        : leftRail - leftLaneIndex++ * 58;
+        ? rightRail + rightLaneIndex++ * 122
+        : leftRail - leftLaneIndex++ * 122;
       const sourceSection = sectionByIndex[source.sectionIndex];
       const targetSection = sectionByIndex[target.sectionIndex];
       const sourceGapY = sourceSection.bottom + 36;
@@ -613,6 +1008,34 @@ function buildLayout(collapsedGroups) {
     }));
   });
 
+  placeEdgeLabels(positionedEdges, positionedNodes);
+
+  const horizontalBounds = [];
+  Object.keys(positionedNodes).forEach(function (id) {
+    const node = positionedNodes[id];
+    horizontalBounds.push(node.x - node.width / 2, node.x + node.width / 2);
+  });
+  positionedGroups.forEach(function (group) {
+    horizontalBounds.push(group.x, group.x + group.width);
+  });
+  positionedEdges.forEach(function (edge) {
+    edge.points.forEach(function (point) { horizontalBounds.push(point.x); });
+    if (edge.labelX !== undefined) horizontalBounds.push(edge.labelX - 58, edge.labelX + 58);
+  });
+  const minimumX = Math.min.apply(null, horizontalBounds);
+  const maximumX = Math.max.apply(null, horizontalBounds);
+  const horizontalShift = minimumX < 20 ? 20 - minimumX : 0;
+  if (horizontalShift) {
+    Object.keys(positionedNodes).forEach(function (id) { positionedNodes[id].x += horizontalShift; });
+    positionedGroups.forEach(function (group) { group.x += horizontalShift; });
+    positionedEdges.forEach(function (edge) {
+      edge.points.forEach(function (point) { point.x += horizontalShift; });
+      if (edge.x !== undefined) edge.x += horizontalShift;
+      if (edge.labelX !== undefined) edge.labelX += horizontalShift;
+    });
+  }
+  const normalizedContentWidth = Math.max(contentWidth + horizontalShift, maximumX + horizontalShift + 20);
+
   return {
     nodes: Object.keys(positionedNodes).map(function (id) { return positionedNodes[id]; }),
     edges: positionedEdges.sort(function (first, second) {
@@ -620,7 +1043,7 @@ function buildLayout(collapsedGroups) {
         || Number(Boolean(currentEdgeIds[first.id])) - Number(Boolean(currentEdgeIds[second.id]));
     }),
     groups: positionedGroups,
-    width: contentWidth + PADDING_X * 2,
+    width: normalizedContentWidth + PADDING_X * 2,
     height: cursorY + PADDING_Y * 2,
   };
 }
@@ -631,11 +1054,25 @@ function topView(layout) {
   return { x: (layout.width - width) / 2, y: 0, width: width, height: height };
 }
 
+function groupView(layout, groupId) {
+  const group = layout.groups.find(function (candidate) { return candidate.id === groupId; });
+  if (!group) return { x: 0, y: 0, width: layout.width, height: layout.height };
+  const horizontalPadding = 110;
+  const verticalPadding = 92;
+  return {
+    x: group.x + PADDING_X - horizontalPadding,
+    y: group.y + PADDING_Y - verticalPadding,
+    width: group.width + horizontalPadding * 2,
+    height: group.height + verticalPadding * 2,
+  };
+}
+
 const initiallyCollapsedGroups = {};
 definition.groups.forEach(function (group) { initiallyCollapsedGroups[group.id] = true; });
 const initialLayout = buildLayout(initiallyCollapsedGroups);
 
-function buildMotionPath(layout) {
+function buildMotionPath(layout, transitionRecords) {
+  const playbackTransitions = Array.isArray(transitionRecords) ? transitionRecords : transitions;
   const positionedNodes = {};
   layout.nodes.forEach(function (node) { positionedNodes[node.id] = node; });
   const visibleNodeIds = {};
@@ -651,7 +1088,7 @@ function buildMotionPath(layout) {
 
   const points = [];
   let cursorId = null;
-  transitions.forEach(function (transition) {
+  playbackTransitions.forEach(function (transition) {
     const sourceId = visibleNodeId(transition.fromNodeId);
     const targetId = visibleNodeId(transition.toNodeId);
     if (sourceId === targetId || !positionedNodes[sourceId] || !positionedNodes[targetId]) return;
@@ -684,6 +1121,7 @@ class App extends React.Component {
       selectedId: 'START',
       traceMode: true,
       playbackRunning: true,
+      detailCollapsed: false,
       motionKey: 0,
     };
     this.currentLayout = initialLayout;
@@ -704,7 +1142,6 @@ class App extends React.Component {
     this.toggleTraceMode = this.toggleTraceMode.bind(this);
     this.focusCurrent = this.focusCurrent.bind(this);
     this.skipPlayback = this.skipPlayback.bind(this);
-    this.replayPlayback = this.replayPlayback.bind(this);
     this.finishPlayback = this.finishPlayback.bind(this);
     this.startMotion = this.startMotion.bind(this);
   }
@@ -719,6 +1156,7 @@ class App extends React.Component {
 
   componentWillUnmount() {
     if (this.motionFrame) window.cancelAnimationFrame(this.motionFrame);
+    if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
   }
 
   startMotion() {
@@ -745,7 +1183,7 @@ class App extends React.Component {
   finishPlayback() {
     this.setState({
       playbackRunning: false,
-      selectedId: instance.activeNodeIds[0] || 'START',
+      selectedId: activeNodeIds[0] || 'START',
     });
   }
 
@@ -753,33 +1191,50 @@ class App extends React.Component {
     if (this.motionFrame) window.cancelAnimationFrame(this.motionFrame);
     this.setState({
       playbackRunning: false,
-      selectedId: instance.activeNodeIds[0] || 'START',
+      selectedId: activeNodeIds[0] || 'START',
     });
   }
 
-  replayPlayback() {
-    if (this.motionFrame) window.cancelAnimationFrame(this.motionFrame);
-    const collapsed = Object.assign({}, initiallyCollapsedGroups);
-    const layout = buildLayout(collapsed);
-    this.currentLayout = layout;
-    this.setState({
-      collapsedGroups: collapsed,
-      viewBox: { x: 0, y: 0, width: layout.width, height: layout.height },
-      selectedId: 'START',
-      traceMode: true,
-      playbackRunning: true,
-      motionKey: this.state.motionKey + 1,
-    }, () => {
-      this.startMotion();
-    });
+  animateViewBox(targetView) {
+    if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
+    const reducedMotion = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      this.setState({ viewBox: targetView });
+      return;
+    }
+    const startView = Object.assign({}, this.state.viewBox);
+    const startedAt = window.performance.now();
+    const duration = 360;
+    const tick = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      this.setState({
+        viewBox: {
+          x: startView.x + (targetView.x - startView.x) * eased,
+          y: startView.y + (targetView.y - startView.y) * eased,
+          width: startView.width + (targetView.width - startView.width) * eased,
+          height: startView.height + (targetView.height - startView.height) * eased,
+        },
+      });
+      if (progress < 1) this.viewFrame = window.requestAnimationFrame(tick);
+      else this.viewFrame = null;
+    };
+    this.viewFrame = window.requestAnimationFrame(tick);
   }
 
-  setCollapsedGroups(nextCollapsed) {
+  setCollapsedGroups(nextCollapsed, focusGroupId) {
     const nextLayout = buildLayout(nextCollapsed);
+    const nextView = focusGroupId
+      ? groupView(nextLayout, focusGroupId)
+      : { x: 0, y: 0, width: nextLayout.width, height: nextLayout.height };
     this.currentLayout = nextLayout;
     this.setState({
       collapsedGroups: nextCollapsed,
-      viewBox: topView(nextLayout),
+    }, () => {
+      this.animateViewBox(nextView);
     });
   }
 
@@ -787,7 +1242,7 @@ class App extends React.Component {
     if (this.state.playbackRunning) this.skipPlayback();
     const nextCollapsed = Object.assign({}, this.state.collapsedGroups);
     nextCollapsed[groupId] = !nextCollapsed[groupId];
-    this.setCollapsedGroups(nextCollapsed);
+    this.setCollapsedGroups(nextCollapsed, nextCollapsed[groupId] ? null : groupId);
   }
 
   collapseAll() {
@@ -813,6 +1268,7 @@ class App extends React.Component {
   }
 
   focusNode(nodeId) {
+    if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
     const layout = this.currentLayout;
     const node = layout.nodes.find(function (candidate) { return candidate.id === nodeId; });
     if (!node) return;
@@ -831,16 +1287,18 @@ class App extends React.Component {
 
   focusCurrent() {
     if (this.state.playbackRunning) this.skipPlayback();
-    const activeId = instance.activeNodeIds[0];
+    const activeId = activeNodeIds[0];
     if (activeId) this.focusNode(activeId);
   }
 
   fitGraph() {
+    if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
     const layout = this.currentLayout;
     this.setState({ viewBox: { x: 0, y: 0, width: layout.width, height: layout.height } });
   }
 
   zoom(factor, center) {
+    if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
     const layout = this.currentLayout;
     this.setState(function (previous) {
       const view = previous.viewBox;
@@ -876,6 +1334,7 @@ class App extends React.Component {
   }
 
   beginDrag(clientX, clientY) {
+    if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
     this.drag = { clientX: clientX, clientY: clientY, viewBox: Object.assign({}, this.state.viewBox) };
   }
 
@@ -942,9 +1401,10 @@ class App extends React.Component {
   }
 
   renderEdge(edge) {
+    const playbackTransitions = transitions;
     const current = Boolean(currentEdgeIds[edge.id]);
     const related = edge.source === this.state.selectedId || edge.target === this.state.selectedId;
-    const transition = latestTransitionByEdgeId[edge.id];
+    const transition = latestTransitionForEdge(playbackTransitions, edge.id) || latestTransitionByEdgeId[edge.id];
     const event = String((transition && transition.event) || edge.event || 'PASS').toUpperCase();
     const edgeClass = cx(
       'edge-route',
@@ -967,13 +1427,14 @@ class App extends React.Component {
   }
 
   renderEdgeLabel(edge) {
-    const transition = latestTransitionByEdgeId[edge.id];
+    const playbackTransitions = transitions;
+    const transition = latestTransitionForEdge(playbackTransitions, edge.id) || latestTransitionByEdgeId[edge.id];
     const event = String((transition && transition.event) || edge.event || 'PASS').toUpperCase();
     const label = edge.condition ? (conditionLabels[edge.condition] || edge.condition) : (event === 'PASS' ? '' : eventLabel(event));
     if (!label) return null;
-    const middlePoint = edge.points[Math.floor(edge.points.length / 2)];
-    const x = edge.x === undefined ? middlePoint.x : edge.x;
-    const y = edge.y === undefined ? middlePoint.y : edge.y;
+    const middlePoint = pointAtPathRatio(edge.points, 0.5);
+    const x = edge.labelX === undefined ? (edge.x === undefined ? middlePoint.x : edge.x) : edge.labelX;
+    const y = edge.labelY === undefined ? (edge.y === undefined ? middlePoint.y : edge.y) : edge.labelY;
     return (
       <g key={`label-${edge.id}`} className={cx('condition-label', edge.taken ? 'condition-taken' : '', currentEdgeIds[edge.id] ? 'condition-current' : '', event !== 'PASS' ? `condition-${event.toLowerCase()}` : '')} transform={`translate(${x}, ${y})`}>
         <rect x="-51" y="-14" width="102" height="28" rx="14" />
@@ -983,10 +1444,12 @@ class App extends React.Component {
   }
 
   renderNode(node) {
-    const status = displayStatus(node);
+    const playbackTransitions = transitions;
+    const displayedActiveNodeIds = activeNodeIds;
     const active = node.collapsedGroup
-      ? definition.nodes.some(function (member) { return member.groupId === node.groupId && instance.activeNodeIds.indexOf(member.id) !== -1; })
-      : instance.activeNodeIds.indexOf(node.id) !== -1;
+      ? definition.nodes.some(function (member) { return member.groupId === node.groupId && displayedActiveNodeIds.indexOf(member.id) !== -1; })
+      : displayedActiveNodeIds.indexOf(node.id) !== -1;
+    const status = displayStatus(node);
     const width = node.width;
     const height = node.height;
     const selected = this.state.selectedId === node.id;
@@ -1003,7 +1466,7 @@ class App extends React.Component {
       else this.selectNode(node.id);
     };
     const sequence = node.collapsedGroup ? `0${node.group.order}` : sequenceByNodeId[node.id];
-    const visitCount = node.collapsedGroup ? 0 : (transitionsByNodeId[node.id] || []).length;
+    const visitCount = node.collapsedGroup ? 0 : playbackTransitions.filter(function (transition) { return transition.toNodeId === node.id; }).length;
 
     return (
       <g
@@ -1045,10 +1508,11 @@ class App extends React.Component {
   }
 
   renderNodeDetail(layout) {
+    const playbackTransitions = transitions;
+    const displayedActiveNodeIds = activeNodeIds;
     const node = layout.nodes.find((candidate) => candidate.id === this.state.selectedId)
-      || layout.nodes.find((candidate) => instance.activeNodeIds.indexOf(candidate.id) !== -1);
+      || layout.nodes.find((candidate) => displayedActiveNodeIds.indexOf(candidate.id) !== -1);
     if (!node) return null;
-    const status = displayStatus(node);
     const group = node.groupId ? groupById[node.groupId] : null;
     const state = node.collapsedGroup ? nodeStateById[node.group.exitNodeId] : nodeStateById[node.id];
     const incoming = node.collapsedGroup
@@ -1058,36 +1522,56 @@ class App extends React.Component {
       ? definition.edges.filter((edge) => nodeById[edge.source].groupId === node.groupId && nodeById[edge.target].groupId !== node.groupId)
       : definition.edges.filter((edge) => edge.source === node.id);
     const active = node.collapsedGroup
-      ? definition.nodes.some((member) => member.groupId === node.groupId && instance.activeNodeIds.indexOf(member.id) !== -1)
-      : instance.activeNodeIds.indexOf(node.id) !== -1;
+      ? definition.nodes.some((member) => member.groupId === node.groupId && displayedActiveNodeIds.indexOf(member.id) !== -1)
+      : displayedActiveNodeIds.indexOf(node.id) !== -1;
+    const status = displayStatus(node);
     const nodeTransitions = node.collapsedGroup
-      ? transitions.filter((transition) => nodeById[transition.toNodeId] && nodeById[transition.toNodeId].groupId === node.groupId)
-      : (transitionsByNodeId[node.id] || []);
+      ? playbackTransitions.filter((transition) => nodeById[transition.toNodeId] && nodeById[transition.toNodeId].groupId === node.groupId)
+      : playbackTransitions.filter((transition) => transition.toNodeId === node.id);
     const lastTransition = nodeTransitions[nodeTransitions.length - 1];
+
+    if (this.state.detailCollapsed) {
+      return (
+        <button
+          type="button"
+          className={cx('detail-fab')}
+          aria-label={`展开${node.name}节点详情`}
+          title={`展开节点详情：${node.name}`}
+          onClick={() => this.setState({ detailCollapsed: false })}
+        >
+          <span>⌃</span>
+        </button>
+      );
+    }
 
     return (
       <aside className={cx('node-detail', `detail-${status.toLowerCase()}`)}>
         <div className={cx('detail-status-row')}>
           <span className={cx('detail-status')}><i />{active ? '当前处理节点' : statusLabel(status)}</span>
-          <span className={cx('detail-sequence')}>{node.collapsedGroup ? `分组 0${node.group.order}` : (sequenceByNodeId[node.id] ? `第 ${sequenceByNodeId[node.id]} 步` : '候选节点')}</span>
+          <span className={cx('detail-actions')}>
+            <span className={cx('detail-sequence')}>{node.collapsedGroup ? `分组 0${node.group.order}` : (sequenceForNode(playbackTransitions, node.id) ? `第 ${sequenceForNode(playbackTransitions, node.id)} 步` : '候选节点')}</span>
+            <button type="button" className={cx('detail-collapse')} aria-label="收起节点详情" title="收起节点详情" onClick={() => this.setState({ detailCollapsed: true })}>⌄</button>
+          </span>
         </div>
         <h3>{node.name}</h3>
         <p>{node.collapsedGroup ? node.group.id : node.id}</p>
         <div className={cx('detail-facts')}>
-          <span><small>进入时间</small><strong>{formatTime(state && state.enteredAt)}</strong></span>
+          <span><small>进入时间</small><strong>{formatTime((lastTransition && lastTransition.occurredAt) || (state && state.enteredAt))}</strong></span>
           <span><small>所属阶段</small><strong>{group ? group.name : '主流程'}</strong></span>
           <span><small>进入次数 / 最近动作</small><strong>{nodeTransitions.length || '—'} / {lastTransition ? eventLabel(lastTransition.event) : '—'}</strong></span>
           <span><small>流入 / 流出</small><strong>{incoming.length} / {outgoing.length}</strong></span>
         </div>
-        <button type="button" onClick={() => this.focusNode(node.id)}>定位节点</button>
+        {lastTransition && lastTransition.reason ? <div className={cx('transition-reason')}><small>{eventLabel(lastTransition.event)}原因</small><strong>{lastTransition.reason}</strong></div> : null}
+        <button type="button" className={cx('detail-locate')} onClick={() => this.focusNode(node.id)}>定位节点</button>
       </aside>
     );
   }
 
   render() {
+    const playbackTransitions = transitions;
     const layout = buildLayout(this.state.collapsedGroups);
     this.currentLayout = layout;
-    const motionPath = buildMotionPath(layout);
+    const motionPath = buildMotionPath(layout, playbackTransitions);
     const view = this.state.viewBox;
     const allCollapsed = definition.groups.every((group) => this.state.collapsedGroups[group.id]);
     const anyCollapsed = definition.groups.some((group) => this.state.collapsedGroups[group.id]);
@@ -1095,8 +1579,6 @@ class App extends React.Component {
     return (
       <main className={cx('flowchart-only', this.state.traceMode ? 'trace-mode' : 'definition-mode', this.state.playbackRunning ? 'playback-running' : 'playback-finished')}>
         <div className={cx('canvas-controls')} aria-label="流程图控制">
-          {this.state.playbackRunning ? <button type="button" className={cx('text-control', 'skip-control')} onClick={this.skipPlayback}>跳过动画</button> : <button type="button" className={cx('text-control', 'replay-control')} onClick={this.replayPlayback}>重新播放</button>}
-          <span className={cx('control-divider')} />
           <button type="button" className={cx('trace-control', this.state.traceMode ? 'is-active' : '')} aria-pressed={this.state.traceMode} onClick={this.toggleTraceMode}><i />运行轨迹</button>
           <button type="button" className={cx('text-control', 'current-control')} onClick={this.focusCurrent}>定位当前</button>
           <span className={cx('control-divider')} />
@@ -1183,4 +1665,4 @@ if (typeof document !== 'undefined') {
   ReactDOM.render(<App />, document.getElementById('root'));
 }
 
-export { buildLayout, buildMotionPath, normalizeTransitions, transitions, hasTransitionHistory };
+export { buildLayout, buildMotionPath, normalizeTransitions, pointAtPathRatio, transitions, hasTransitionHistory };
