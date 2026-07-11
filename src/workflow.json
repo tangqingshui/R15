@@ -1,0 +1,605 @@
+{
+  "definition": {
+    "edges": [
+      {
+        "event": "PASS",
+        "id": "START_TO_NOT_SUBMITTED",
+        "source": "START",
+        "target": "NOT_SUBMITTED"
+      },
+      {
+        "event": "PASS",
+        "id": "NOT_SUBMITTED_TO_APPROVAL_PENDING",
+        "source": "NOT_SUBMITTED",
+        "target": "APPROVAL_PENDING"
+      },
+      {
+        "event": "PASS",
+        "id": "APPROVAL_PENDING_TO_ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "source": "APPROVAL_PENDING",
+        "target": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY"
+      },
+      {
+        "event": "PASS",
+        "id": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "source": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "target": "CTR_COLLECTION_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
+        "source": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "target": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "source": "CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "target": "CTR_PAYMENT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "source": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
+        "target": "CTR_PAYMENT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_PAYMENT_BY_ADVANCE_PAYMENT_TO_APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "source": "CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "target": "APPO_PAYMENT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "APPO_PAYMENT_BY_ADVANCE_PAYMENT_TO_READY_TO_ADVANCE_FINANCING",
+        "source": "APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "target": "READY_TO_ADVANCE_FINANCING"
+      },
+      {
+        "event": "PASS",
+        "id": "READY_TO_ADVANCE_FINANCING_TO_CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "source": "READY_TO_ADVANCE_FINANCING",
+        "target": "CTR_DEBT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "READY_TO_ADVANCE_FINANCING_TO_CFL_FINANCING_BY_ADVANCE_FINANCING",
+        "source": "READY_TO_ADVANCE_FINANCING",
+        "target": "CFL_FINANCING_BY_ADVANCE_FINANCING"
+      },
+      {
+        "event": "PASS",
+        "id": "READY_TO_ADVANCE_FINANCING_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "source": "READY_TO_ADVANCE_FINANCING",
+        "target": "ADVANCE_PAYMENT_SETTLEMENT_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_DEBT_BY_ADVANCE_PAYMENT_TO_CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "source": "CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "target": "CTR_BORROW_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_BORROW_BY_ADVANCE_PAYMENT_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "source": "CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "target": "ADVANCE_PAYMENT_SETTLEMENT_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "CFL_FINANCING_BY_ADVANCE_FINANCING_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "source": "CFL_FINANCING_BY_ADVANCE_FINANCING",
+        "target": "ADVANCE_PAYMENT_SETTLEMENT_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "ADVANCE_PAYMENT_SETTLEMENT_DONE_TO_TAIL_CI_PENDING",
+        "source": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "target": "TAIL_CI_PENDING"
+      },
+      {
+        "event": "PASS",
+        "id": "TAIL_CI_PENDING_TO_TAIL_SETTLEMENT_PENDING_ENTRY",
+        "source": "TAIL_CI_PENDING",
+        "target": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "condition": "tailFirst"
+      },
+      {
+        "event": "PASS",
+        "id": "TAIL_SETTLEMENT_PENDING_ENTRY_TO_APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "source": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "target": "APPO_PAYMENT_BY_TAIL_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "APPO_PAYMENT_BY_TAIL_PAYMENT_TO_CTR_BORROW_BY_TAIL_PAYMENT",
+        "source": "APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "target": "CTR_BORROW_BY_TAIL_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "APPO_PAYMENT_BY_TAIL_PAYMENT_TO_CFL_FINANCING_BY_TAIL_FINANCING",
+        "source": "APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "target": "CFL_FINANCING_BY_TAIL_FINANCING"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_BORROW_BY_TAIL_PAYMENT_TO_CTR_DEBT_BY_TAIL_PAYMENT",
+        "source": "CTR_BORROW_BY_TAIL_PAYMENT",
+        "target": "CTR_DEBT_BY_TAIL_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_DEBT_BY_TAIL_PAYMENT_TO_TAIL_SETTLEMENT_PENDING_DONE",
+        "source": "CTR_DEBT_BY_TAIL_PAYMENT",
+        "target": "TAIL_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "CFL_FINANCING_BY_TAIL_FINANCING_TO_TAIL_SETTLEMENT_PENDING_DONE",
+        "source": "CFL_FINANCING_BY_TAIL_FINANCING",
+        "target": "TAIL_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "TAIL_SETTLEMENT_PENDING_DONE_TO_TAX_SETTLEMENT_PENDING_ENTRY",
+        "source": "TAIL_SETTLEMENT_PENDING_DONE",
+        "target": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "condition": "taxNotCompleted"
+      },
+      {
+        "event": "PASS",
+        "id": "TAX_SETTLEMENT_PENDING_ENTRY_TO_CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "source": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "target": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "TAX_SETTLEMENT_PENDING_ENTRY_TO_CTR_COLLECTION_BY_TAX_PAYMENT",
+        "source": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "target": "CTR_COLLECTION_BY_TAX_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_COLLECTION_BY_TAX_PAYMENT_TO_CTR_PAYMENT_BY_TAX_PAYMENT",
+        "source": "CTR_COLLECTION_BY_TAX_PAYMENT",
+        "target": "CTR_PAYMENT_BY_TAX_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_PAYMENT_BY_TAX_PAYMENT_TO_CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "source": "CTR_PAYMENT_BY_TAX_PAYMENT",
+        "target": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT_TO_CTR_DEBT_BY_TAX_PAYMENT",
+        "source": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "target": "CTR_DEBT_BY_TAX_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT_TO_CFL_FINANCING_BY_TAX_FINANCING",
+        "source": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "target": "CFL_FINANCING_BY_TAX_FINANCING"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT_TO_TAX_SETTLEMENT_PENDING_DONE",
+        "source": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "target": "TAX_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_DEBT_BY_TAX_PAYMENT_TO_CTR_BORROW_BY_TAX_PAYMENT",
+        "source": "CTR_DEBT_BY_TAX_PAYMENT",
+        "target": "CTR_BORROW_BY_TAX_PAYMENT"
+      },
+      {
+        "event": "PASS",
+        "id": "CTR_BORROW_BY_TAX_PAYMENT_TO_TAX_SETTLEMENT_PENDING_DONE",
+        "source": "CTR_BORROW_BY_TAX_PAYMENT",
+        "target": "TAX_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "CFL_FINANCING_BY_TAX_FINANCING_TO_TAX_SETTLEMENT_PENDING_DONE",
+        "source": "CFL_FINANCING_BY_TAX_FINANCING",
+        "target": "TAX_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "event": "PASS",
+        "id": "TAX_SETTLEMENT_PENDING_DONE_TO_REPAYMENT_PENDING",
+        "source": "TAX_SETTLEMENT_PENDING_DONE",
+        "target": "REPAYMENT_PENDING",
+        "condition": "tailCompleted"
+      },
+      {
+        "event": "PASS",
+        "id": "TAIL_CI_PENDING_TO_TAX_SETTLEMENT_PENDING_ENTRY",
+        "source": "TAIL_CI_PENDING",
+        "target": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "condition": "taxFirst"
+      },
+      {
+        "event": "PASS",
+        "id": "TAX_SETTLEMENT_PENDING_DONE_TO_TAIL_SETTLEMENT_PENDING_ENTRY",
+        "source": "TAX_SETTLEMENT_PENDING_DONE",
+        "target": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "condition": "tailNotCompleted"
+      },
+      {
+        "event": "PASS",
+        "id": "TAIL_SETTLEMENT_PENDING_DONE_TO_REPAYMENT_PENDING",
+        "source": "TAIL_SETTLEMENT_PENDING_DONE",
+        "target": "REPAYMENT_PENDING",
+        "condition": "taxCompleted"
+      }
+    ],
+    "groups": [
+      {
+        "entryNodeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "exitNodeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "id": "ADVANCE_PAYMENT_SETTLEMENT",
+        "name": "待预付款结算",
+        "order": 1
+      },
+      {
+        "entryNodeId": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "exitNodeId": "TAIL_SETTLEMENT_PENDING_DONE",
+        "id": "TAIL_SETTLEMENT_PENDING",
+        "name": "待尾款结算",
+        "order": 2
+      },
+      {
+        "entryNodeId": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "exitNodeId": "TAX_SETTLEMENT_PENDING_DONE",
+        "id": "TAX_SETTLEMENT_PENDING",
+        "name": "待税款结算",
+        "order": 3
+      }
+    ],
+    "nodes": [
+      {
+        "id": "START",
+        "name": "流程开始"
+      },
+      {
+        "id": "NOT_SUBMITTED",
+        "name": "待提交"
+      },
+      {
+        "id": "APPROVAL_PENDING",
+        "name": "待审批"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "name": "子流程入口"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "name": "预付款未收款"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "IN_BATCHES_COLLECTION_BY_ADVANCE_PAYMENT",
+        "name": "预付款分批未收款"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "name": "预付款未付款(购汇付款)"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "READY_TO_ADVANCE_FINANCING",
+        "name": "预付款准备放款"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "name": "预付款未欠款"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "name": "预付款未付款"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "CFL_FINANCING_BY_ADVANCE_FINANCING",
+        "name": "预付款未放款(融资放款单)"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "name": "预付款未欠款(欠款单)"
+      },
+      {
+        "groupId": "ADVANCE_PAYMENT_SETTLEMENT",
+        "id": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "name": "子流程完成"
+      },
+      {
+        "id": "TAIL_CI_PENDING",
+        "name": "待CI补料"
+      },
+      {
+        "groupId": "TAIL_SETTLEMENT_PENDING",
+        "id": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "name": "子流程入口"
+      },
+      {
+        "groupId": "TAIL_SETTLEMENT_PENDING",
+        "id": "APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "name": "尾款未付款(购汇付款)"
+      },
+      {
+        "groupId": "TAIL_SETTLEMENT_PENDING",
+        "id": "CTR_BORROW_BY_TAIL_PAYMENT",
+        "name": "尾款未欠款(欠款单)"
+      },
+      {
+        "groupId": "TAIL_SETTLEMENT_PENDING",
+        "id": "CTR_DEBT_BY_TAIL_PAYMENT",
+        "name": "尾款未欠款(玉湖欠资方)"
+      },
+      {
+        "groupId": "TAIL_SETTLEMENT_PENDING",
+        "id": "CFL_FINANCING_BY_TAIL_FINANCING",
+        "name": "尾款未放款(放款单)"
+      },
+      {
+        "groupId": "TAIL_SETTLEMENT_PENDING",
+        "id": "TAIL_SETTLEMENT_PENDING_DONE",
+        "name": "子流程完成"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "name": "子流程入口"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "CTR_COLLECTION_BY_TAX_PAYMENT",
+        "name": "税款未收款"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "CTR_PAYMENT_BY_TAX_PAYMENT",
+        "name": "税款未付款"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "CFL_FINANCING_BY_TAX_FINANCING",
+        "name": "税款未放款(放款单)"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "CTR_BORROW_BY_TAX_PAYMENT",
+        "name": "税款未欠款(欠款单)"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "CTR_DEBT_BY_TAX_PAYMENT",
+        "name": "税款未欠款(玉湖欠国企)"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "name": "税款未付款(资方付海关)"
+      },
+      {
+        "groupId": "TAX_SETTLEMENT_PENDING",
+        "id": "TAX_SETTLEMENT_PENDING_DONE",
+        "name": "子流程完成"
+      },
+      {
+        "id": "REPAYMENT_PENDING",
+        "name": "待还款"
+      }
+    ],
+    "processCode": "DZDC_SOE_FOREIGN_PAY_FIRST_BUSINESS_FLOW",
+    "processName": "垫资代采-国企模式-外贸-主流程",
+    "version": 1
+  },
+  "instance": {
+    "activeNodeIds": [
+      "REPAYMENT_PENDING"
+    ],
+    "businessId": "DZDC202606270009",
+    "definitionVersion": 1,
+    "edgeStates": [
+      {
+        "edgeId": "START_TO_NOT_SUBMITTED"
+      },
+      {
+        "edgeId": "NOT_SUBMITTED_TO_APPROVAL_PENDING"
+      },
+      {
+        "edgeId": "APPROVAL_PENDING_TO_ADVANCE_PAYMENT_SETTLEMENT_ENTRY"
+      },
+      {
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY_TO_CTR_COLLECTION_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT_TO_CTR_PAYMENT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT_TO_APPO_PAYMENT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "edgeId": "APPO_PAYMENT_BY_ADVANCE_PAYMENT_TO_READY_TO_ADVANCE_FINANCING"
+      },
+      {
+        "edgeId": "READY_TO_ADVANCE_FINANCING_TO_CTR_DEBT_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_DEBT_BY_ADVANCE_PAYMENT_TO_CTR_BORROW_BY_ADVANCE_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_BORROW_BY_ADVANCE_PAYMENT_TO_ADVANCE_PAYMENT_SETTLEMENT_DONE"
+      },
+      {
+        "edgeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE_TO_TAIL_CI_PENDING"
+      },
+      {
+        "edgeId": "TAIL_CI_PENDING_TO_TAIL_SETTLEMENT_PENDING_ENTRY"
+      },
+      {
+        "edgeId": "TAIL_SETTLEMENT_PENDING_ENTRY_TO_APPO_PAYMENT_BY_TAIL_PAYMENT"
+      },
+      {
+        "edgeId": "APPO_PAYMENT_BY_TAIL_PAYMENT_TO_CTR_BORROW_BY_TAIL_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_BORROW_BY_TAIL_PAYMENT_TO_CTR_DEBT_BY_TAIL_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_DEBT_BY_TAIL_PAYMENT_TO_TAIL_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "edgeId": "TAIL_SETTLEMENT_PENDING_DONE_TO_TAX_SETTLEMENT_PENDING_ENTRY"
+      },
+      {
+        "edgeId": "TAX_SETTLEMENT_PENDING_ENTRY_TO_CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT_TO_CTR_DEBT_BY_TAX_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_DEBT_BY_TAX_PAYMENT_TO_CTR_BORROW_BY_TAX_PAYMENT"
+      },
+      {
+        "edgeId": "CTR_BORROW_BY_TAX_PAYMENT_TO_TAX_SETTLEMENT_PENDING_DONE"
+      },
+      {
+        "edgeId": "TAX_SETTLEMENT_PENDING_DONE_TO_REPAYMENT_PENDING"
+      }
+    ],
+    "instanceId": "PROCESS_DZDC202606270009",
+    "nodeStates": [
+      {
+        "enteredAt": 1782552650000,
+        "nodeId": "START",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552651000,
+        "nodeId": "NOT_SUBMITTED",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552652000,
+        "nodeId": "APPROVAL_PENDING",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552653000,
+        "nodeId": "ADVANCE_PAYMENT_SETTLEMENT_ENTRY",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552654000,
+        "nodeId": "CTR_COLLECTION_BY_ADVANCE_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552656000,
+        "nodeId": "APPO_PAYMENT_BY_ADVANCE_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552657000,
+        "nodeId": "READY_TO_ADVANCE_FINANCING",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552659000,
+        "nodeId": "CTR_BORROW_BY_ADVANCE_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552655000,
+        "nodeId": "CTR_PAYMENT_BY_ADVANCE_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552658000,
+        "nodeId": "CTR_DEBT_BY_ADVANCE_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552660000,
+        "nodeId": "ADVANCE_PAYMENT_SETTLEMENT_DONE",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552661000,
+        "nodeId": "TAIL_CI_PENDING",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552662000,
+        "nodeId": "TAIL_SETTLEMENT_PENDING_ENTRY",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552663000,
+        "nodeId": "APPO_PAYMENT_BY_TAIL_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552664000,
+        "nodeId": "CTR_BORROW_BY_TAIL_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552665000,
+        "nodeId": "CTR_DEBT_BY_TAIL_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552666000,
+        "nodeId": "TAIL_SETTLEMENT_PENDING_DONE",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552667000,
+        "nodeId": "TAX_SETTLEMENT_PENDING_ENTRY",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552670000,
+        "nodeId": "CTR_BORROW_BY_TAX_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552669000,
+        "nodeId": "CTR_DEBT_BY_TAX_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552668000,
+        "nodeId": "CTR_CAPITAL_PAYMENT_BY_TAX_PAYMENT",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552671000,
+        "nodeId": "TAX_SETTLEMENT_PENDING_DONE",
+        "status": "COMPLETED"
+      },
+      {
+        "enteredAt": 1782552672000,
+        "nodeId": "REPAYMENT_PENDING",
+        "status": "PROCESSING"
+      }
+    ],
+    "processCode": "DZDC_SOE_FOREIGN_PAY_FIRST_BUSINESS_FLOW",
+    "revision": 19,
+    "status": "RUNNING",
+    "updatedAt": 1782552672000
+  }
+}
