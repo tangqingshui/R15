@@ -9,6 +9,8 @@
 
 当前 `src/workflow.json` 已内置一份复杂实例数据。后端不返回 `instance.transitions`、返回 `null` 或返回 `[]` 时，前端会自动回退为按 `instance.edgeStates` 静态展示。后端字段说明和 Java DTO 见 `docs/workflow-api-contract-java.md`。
 
+如果后端把分组本身作为真实节点，接口响应会先经过 `src/api/workflowApi.js` 和 `src/workflowAdapter.js`，自动转换为前端使用的“分组容器 + 虚拟入口/出口”结构。
+
 ## 本地运行
 
 ```bash

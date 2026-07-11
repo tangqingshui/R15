@@ -307,3 +307,46 @@ public class WorkflowController {
 - `edgeStates`：没有历史日志时用于判断哪些边曾执行。
 - `transitions`：存在时优先用于动画、事件颜色、进入次数、最近动作和原因展示。
 - `activeNodeIds` 使用数组，因此天然支持多个并行活动节点。
+
+## 9. 后端真实分组节点的前端转换
+
+如果后端将分组本身作为真实节点，并且虚拟入口、出口不放入 `definition.nodes`，前端接口层会执行以下转换：
+
+| 后端边 | 转换后的前端边 |
+|---|---|
+| 外部节点 → 分组节点 | 外部节点 → `entryNodeId` |
+| 分组节点 → 组内子节点 | `entryNodeId` → 组内子节点 |
+| 组内子节点 → 分组节点 | 组内子节点 → `exitNodeId` |
+| 分组节点 → 外部节点 | `exitNodeId` → 外部节点 |
+| 外部节点以 REJECT/ROLLBACK 指向分组 | 外部节点 → `exitNodeId` |
+
+分组状态转换：
+
+| 后端分组节点状态 | 虚拟入口状态 | 虚拟出口状态 |
+|---|---|---|
+| 未进入/无状态 | 不返回 | 不返回 |
+| `PROCESSING` | `COMPLETED` | 不返回，表示未到达 |
+| `COMPLETED` | `COMPLETED` | `COMPLETED` |
+
+其他规则：
+
+1. 后端真实分组节点的 `id` 必须等于 `definition.groups[].id`。
+2. 组内真实子节点继续通过 `nodes[].groupId` 关联分组。
+3. 后端必须继续返回组内真实子节点的 `nodeStates` 和 `activeNodeIds`。
+4. 转换后会移除真实分组节点及其 `nodeState/activeNodeId`，避免与前端分组容器重复显示。
+5. `edgeStates.edgeId` 不变，因为转换只改边的起止节点，不改边 ID。
+6. 返回 `transitions` 时，接口层根据转换后的边同步修正 `fromNodeId/toNodeId`。
+
+前端接口层调用：
+
+```javascript
+import { transformWorkflowApiResponse } from './api/workflowApi';
+
+export function getWorkflow(businessId) {
+  return fetch(`/api/workflows/${businessId}`)
+    .then((response) => response.json())
+    .then(transformWorkflowApiResponse);
+}
+```
+
+具体转换实现见 `src/workflowAdapter.js`。

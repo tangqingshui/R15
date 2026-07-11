@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import workflow from './workflow.json';
+import workflowResponse from './workflow.json';
+import { transformWorkflowApiResponse } from './api/workflowApi';
 import styles from './styles.module.css';
 
 function cx() {
@@ -17,6 +18,7 @@ const GROUP_WIDTH = 280;
 const GROUP_HEIGHT = 104;
 const PADDING_X = 150;
 const PADDING_Y = 120;
+const workflow = transformWorkflowApiResponse(workflowResponse);
 const definition = workflow.definition;
 const instance = workflow.instance;
 const nodeStates = Array.isArray(instance.nodeStates) ? instance.nodeStates : [];
