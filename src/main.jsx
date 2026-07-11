@@ -1119,9 +1119,11 @@ class App extends React.Component {
       collapsedGroups: Object.assign({}, initiallyCollapsedGroups),
       viewBox: { x: 0, y: 0, width: initialLayout.width, height: initialLayout.height },
       selectedId: 'START',
+      dataLoading: true,
       traceMode: true,
       playbackRunning: true,
       detailCollapsed: false,
+      groupNavigatorCollapsed: false,
       motionKey: 0,
     };
     this.currentLayout = initialLayout;
@@ -1147,14 +1149,21 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      this.skipPlayback();
-      return;
-    }
-    this.startMotion();
+    // 本地模拟接口调用；接入后端时将此处替换为 fetch/axios 请求。
+    this.loadTimer = window.setTimeout(() => {
+      this.loadTimer = null;
+      this.setState({ dataLoading: false }, () => {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          this.skipPlayback();
+          return;
+        }
+        this.startMotion();
+      });
+    }, 900);
   }
 
   componentWillUnmount() {
+    if (this.loadTimer) window.clearTimeout(this.loadTimer);
     if (this.motionFrame) window.cancelAnimationFrame(this.motionFrame);
     if (this.viewFrame) window.cancelAnimationFrame(this.viewFrame);
   }
@@ -1568,6 +1577,22 @@ class App extends React.Component {
   }
 
   render() {
+    if (this.state.dataLoading) {
+      return (
+        <main className={cx('flowchart-only', 'workflow-loading')} aria-busy="true" aria-live="polite">
+          <div className={cx('loading-card')}>
+            <div className={cx('loading-mark')} aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </div>
+            <strong>正在加载流程数据</strong>
+            <span>正在获取流程定义与实例状态…</span>
+          </div>
+        </main>
+      );
+    }
+
     const playbackTransitions = transitions;
     const layout = buildLayout(this.state.collapsedGroups);
     this.currentLayout = layout;
@@ -1589,6 +1614,45 @@ class App extends React.Component {
           <button type="button" onClick={this.zoomOut} aria-label="缩小">−</button>
           <button type="button" className={cx('fit-control')} onClick={this.fitGraph}>适应画布</button>
         </div>
+
+        {this.state.groupNavigatorCollapsed ? (
+          <button
+            type="button"
+            className={cx('group-navigator-fab')}
+            aria-label="展开流程分组导航"
+            title="展开流程分组导航"
+            onClick={() => this.setState({ groupNavigatorCollapsed: false })}
+          >
+            <span>组</span>
+          </button>
+        ) : (
+          <nav className={cx('group-navigator')} aria-label="流程分组导航">
+            <div className={cx('group-navigator-header')}>
+              <strong>流程分组</strong>
+              <button type="button" aria-label="收起流程分组导航" title="收起流程分组导航" onClick={() => this.setState({ groupNavigatorCollapsed: true })}>›</button>
+            </div>
+            {definition.groups.map((group) => {
+              const expanded = !this.state.collapsedGroups[group.id];
+              return (
+                <button
+                  key={`navigator-${group.id}`}
+                  type="button"
+                  className={cx('group-navigator-item', expanded ? 'is-expanded' : 'is-collapsed')}
+                  aria-expanded={expanded}
+                  aria-label={`${expanded ? '收起' : '展开'}${group.name}`}
+                  onClick={() => this.toggleGroup(group.id)}
+                >
+                  <span className={cx('group-navigator-number')}>0{group.order}</span>
+                  <span className={cx('group-navigator-copy')}>
+                    <strong>{group.name}</strong>
+                    <small>{expanded ? '已展开' : '已收起'}</small>
+                  </span>
+                  <span className={cx('group-navigator-arrow')}>{expanded ? '⌃' : '⌄'}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
         <svg
           ref={(element) => { this.svg = element; }}
